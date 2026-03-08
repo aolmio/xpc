@@ -1,80 +1,74 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Advanced Burmese Text + Watermark Editor</title>
+<title>Burmese Text + Watermark Editor</title>
 
 <style>
+
 body{
 font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;
-display:flex;
-flex-direction:column;
-align-items:center;
 background:#1a1a1a;
 color:#eee;
 padding:20px;
+display:flex;
+flex-direction:column;
+align-items:center;
 }
 
-.container{
+.editor{
 display:flex;
-gap:25px;
-flex-wrap:wrap;
-justify-content:center;
+gap:30px;
+align-items:flex-start;
+max-width:1400px;
 width:100%;
-max-width:1200px;
 }
 
 canvas{
 border:3px solid #444;
-border-radius:8px;
-box-shadow:0 10px 30px rgba(0,0,0,0.5);
-max-width:100%;
-height:auto;
+border-radius:10px;
 background:#000;
+box-shadow:0 10px 30px rgba(0,0,0,0.6);
 }
 
 .controls{
+width:360px;
 background:#2d2d2d;
 padding:20px;
 border-radius:12px;
-width:350px;
-height:fit-content;
 }
 
 .control-group{
-margin-bottom:12px;
+margin-bottom:14px;
 border-bottom:1px solid #444;
 padding-bottom:10px;
 }
 
 label{
-display:block;
 font-size:11px;
 text-transform:uppercase;
 letter-spacing:1px;
-margin-bottom:8px;
 color:#aaa;
+display:block;
+margin-bottom:6px;
 }
 
-input,select,textarea{
+input,textarea,select{
 width:100%;
 box-sizing:border-box;
 }
 
 textarea{
-height:80px;
 background:#111;
-color:#fff;
+color:white;
 border:1px solid #555;
-border-radius:4px;
 padding:8px;
-font-size:14px;
-resize:vertical;
+border-radius:4px;
+height:80px;
 }
 
-.grid-2{
+.grid2{
 display:grid;
 grid-template-columns:1fr 1fr;
 gap:10px;
@@ -86,23 +80,23 @@ padding:12px;
 background:#d4af37;
 border:none;
 border-radius:6px;
-cursor:pointer;
 font-weight:bold;
-font-size:16px;
+cursor:pointer;
 margin-top:10px;
 }
 
 button:hover{
 background:#f6e5a0;
 }
+
 </style>
 </head>
 
 <body>
 
-<h2 style="color:#d4af37;">Burmese Text + Watermark Editor</h2>
+<h2 style="color:#d4af37">Burmese Photo Editor</h2>
 
-<div class="container">
+<div class="editor">
 
 <canvas id="textCanvas" width="1000" height="600"></canvas>
 
@@ -114,19 +108,18 @@ background:#f6e5a0;
 </div>
 
 <div class="control-group">
-<label>Watermark PNG</label>
+<label>Upload Watermark PNG</label>
 <input type="file" id="watermarkLoader" accept="image/png">
 </div>
 
 <div class="control-group">
 <label>Watermark Position</label>
-<select id="wmPosition">
-<option value="right">Right</option>
-<option value="left">Left</option>
-<option value="top">Top</option>
-<option value="bottom">Bottom</option>
-<option value="center">Center</option>
-</select>
+
+<div class="grid2">
+<input type="range" id="wmX" min="0" max="1000" value="800">
+<input type="range" id="wmY" min="0" max="600" value="400">
+</div>
+
 </div>
 
 <div class="control-group">
@@ -140,9 +133,9 @@ background:#f6e5a0;
 </div>
 
 <div class="control-group">
-<label>Repeat Watermark Pattern</label>
+<label>Watermark Mode</label>
 <select id="wmRepeat">
-<option value="no">No</option>
+<option value="single">Single</option>
 <option value="pattern">Repeat Pattern</option>
 </select>
 </div>
@@ -156,8 +149,8 @@ background:#f6e5a0;
 
 <div class="control-group">
 <label>Text Position</label>
-<div class="grid-2">
-<input type="range" id="xPos" min="0" max="1000" value="50">
+<div class="grid2">
+<input type="range" id="xPos" min="0" max="1000" value="100">
 <input type="range" id="yPos" min="0" max="600" value="100">
 </div>
 </div>
@@ -174,14 +167,16 @@ background:#f6e5a0;
 
 <div class="control-group">
 <label>Gradient Colors</label>
-<div class="grid-2">
+
+<div class="grid2">
 <input type="color" id="color1" value="#f6e5a0">
 <input type="color" id="color2" value="#b38e46">
 </div>
+
 </div>
 
 <div class="control-group">
-<label>Alignment</label>
+<label>Text Alignment</label>
 <select id="textAlign">
 <option value="left">Left</option>
 <option value="center" selected>Center</option>
@@ -192,175 +187,170 @@ background:#f6e5a0;
 <button id="downloadBtn">Export Image</button>
 
 </div>
+
 </div>
 
 <script>
 
-const canvas=document.getElementById("textCanvas");
-const ctx=canvas.getContext("2d");
+const canvas=document.getElementById("textCanvas")
+const ctx=canvas.getContext("2d")
 
-const elements=[
+const ids=[
 "imageLoader","watermarkLoader","textInput","fontSize","xPos","yPos",
 "color1","color2","lineSpacing","textAlign",
-"wmPosition","wmSize","wmOpacity","wmRepeat"
-].reduce((acc,id)=>{acc[id]=document.getElementById(id);return acc;},{});
+"wmX","wmY","wmSize","wmOpacity","wmRepeat"
+]
 
-let img=new Image();
-let watermark=new Image();
-let watermarkLoaded=false;
+const el={}
+ids.forEach(id=>el[id]=document.getElementById(id))
 
-elements.imageLoader.addEventListener("change",e=>{
-const reader=new FileReader();
+let img=new Image()
+let watermark=new Image()
+let watermarkLoaded=false
+
+el.imageLoader.addEventListener("change",e=>{
+
+const reader=new FileReader()
+
 reader.onload=event=>{
 img.onload=()=>{
-canvas.height=(img.height/img.width)*canvas.width;
-elements.yPos.max=canvas.height;
-elements.xPos.max=canvas.width;
-draw();
-};
-img.src=event.target.result;
-};
-reader.readAsDataURL(e.target.files[0]);
-});
+canvas.height=(img.height/img.width)*canvas.width
+el.yPos.max=canvas.height
+el.xPos.max=canvas.width
+el.wmX.max=canvas.width
+el.wmY.max=canvas.height
+draw()
+}
 
-elements.watermarkLoader.addEventListener("change",e=>{
-const reader=new FileReader();
+img.src=event.target.result
+}
+
+reader.readAsDataURL(e.target.files[0])
+
+})
+
+el.watermarkLoader.addEventListener("change",e=>{
+
+const reader=new FileReader()
+
 reader.onload=event=>{
 watermark.onload=()=>{
-watermarkLoaded=true;
-draw();
-};
-watermark.src=event.target.result;
-};
-reader.readAsDataURL(e.target.files[0]);
-});
+watermarkLoaded=true
+draw()
+}
 
-Object.values(elements).forEach(el=>{
-if(el.id!=="imageLoader"&&el.id!=="watermarkLoader")
-el.addEventListener("input",draw);
-});
+watermark.src=event.target.result
+}
+
+reader.readAsDataURL(e.target.files[0])
+
+})
+
+Object.values(el).forEach(i=>{
+if(i.type!=="file") i.addEventListener("input",draw)
+})
 
 function draw(){
 
-ctx.clearRect(0,0,canvas.width,canvas.height);
+ctx.clearRect(0,0,canvas.width,canvas.height)
 
 if(img.src){
-ctx.drawImage(img,0,0,canvas.width,canvas.height);
+ctx.drawImage(img,0,0,canvas.width,canvas.height)
 }else{
-ctx.fillStyle="#222";
-ctx.fillRect(0,0,canvas.width,canvas.height);
+ctx.fillStyle="#222"
+ctx.fillRect(0,0,canvas.width,canvas.height)
 }
 
-drawWatermark();
-drawText();
+drawWatermark()
+drawText()
+
 }
 
 function drawWatermark(){
 
-if(!watermarkLoaded) return;
+if(!watermarkLoaded) return
 
-const sizePercent=parseInt(elements.wmSize.value)/100;
-const wmWidth=canvas.width*sizePercent;
-const wmHeight=watermark.height*(wmWidth/watermark.width);
+const size=parseInt(el.wmSize.value)/100
 
-ctx.globalAlpha=parseFloat(elements.wmOpacity.value);
+const wmWidth=canvas.width*size
+const wmHeight=watermark.height*(wmWidth/watermark.width)
 
-if(elements.wmRepeat.value==="pattern"){
+ctx.globalAlpha=parseFloat(el.wmOpacity.value)
 
-const spacing=200;
+if(el.wmRepeat.value==="pattern"){
 
-for(let x=-canvas.width;x<canvas.width*2;x+=spacing){
-for(let y=-canvas.height;y<canvas.height*2;y+=spacing){
+const space=250
 
-ctx.save();
-ctx.translate(x,y);
-ctx.rotate(-0.5);
-ctx.drawImage(watermark,-wmWidth/2,-wmHeight/2,wmWidth,wmHeight);
-ctx.restore();
+for(let x=-canvas.width;x<canvas.width*2;x+=space){
+for(let y=-canvas.height;y<canvas.height*2;y+=space){
+
+ctx.save()
+ctx.translate(x,y)
+ctx.rotate(-0.5)
+ctx.drawImage(watermark,-wmWidth/2,-wmHeight/2,wmWidth,wmHeight)
+ctx.restore()
 
 }
 }
 
 }else{
 
-let x=0,y=0;
-
-switch(elements.wmPosition.value){
-
-case "right":
-x=canvas.width-wmWidth-20;
-y=(canvas.height-wmHeight)/2;
-break;
-
-case "left":
-x=20;
-y=(canvas.height-wmHeight)/2;
-break;
-
-case "top":
-x=(canvas.width-wmWidth)/2;
-y=20;
-break;
-
-case "bottom":
-x=(canvas.width-wmWidth)/2;
-y=canvas.height-wmHeight-20;
-break;
-
-case "center":
-x=(canvas.width-wmWidth)/2;
-y=(canvas.height-wmHeight)/2;
-break;
+ctx.drawImage(
+watermark,
+parseInt(el.wmX.value),
+parseInt(el.wmY.value),
+wmWidth,
+wmHeight
+)
 
 }
 
-ctx.drawImage(watermark,x,y,wmWidth,wmHeight);
-
-}
-
-ctx.globalAlpha=1;
+ctx.globalAlpha=1
 
 }
 
 function drawText(){
 
-const lines=elements.textInput.value.split("\n");
+const lines=el.textInput.value.split("\n")
+const fSize=parseInt(el.fontSize.value)
+const lineH=fSize*parseFloat(el.lineSpacing.value)
 
-const fSize=parseInt(elements.fontSize.value);
-const lineH=fSize*parseFloat(elements.lineSpacing.value);
-
-ctx.font=`bold ${fSize}px Pyidaungsu,Myanmar3,sans-serif`;
-ctx.textAlign=elements.textAlign.value;
-ctx.textBaseline="top";
+ctx.font=`bold ${fSize}px Pyidaungsu,Myanmar3,sans-serif`
+ctx.textAlign=el.textAlign.value
+ctx.textBaseline="top"
 
 lines.forEach((line,index)=>{
 
-const currentY=parseInt(elements.yPos.value)+(index*lineH);
+const y=parseInt(el.yPos.value)+(index*lineH)
 
-const gradient=ctx.createLinearGradient(0,currentY,0,currentY+fSize);
+const grad=ctx.createLinearGradient(0,y,0,y+fSize)
 
-gradient.addColorStop(0,elements.color1.value);
-gradient.addColorStop(1,elements.color2.value);
+grad.addColorStop(0,el.color1.value)
+grad.addColorStop(1,el.color2.value)
 
-ctx.shadowColor="rgba(0,0,0,0.7)";
-ctx.shadowOffsetX=3;
-ctx.shadowOffsetY=3;
-ctx.shadowBlur=6;
+ctx.shadowColor="rgba(0,0,0,0.7)"
+ctx.shadowOffsetX=3
+ctx.shadowOffsetY=3
+ctx.shadowBlur=6
 
-ctx.fillStyle=gradient;
+ctx.fillStyle=grad
 
-ctx.fillText(line,parseInt(elements.xPos.value),currentY);
+ctx.fillText(line,parseInt(el.xPos.value),y)
 
-});
+})
 
 }
 
-document.getElementById("downloadBtn").addEventListener("click",()=>{
-const link=document.createElement("a");
-link.download="burmese-design.png";
-link.href=canvas.toDataURL("image/png");
-link.click();
-});
+document.getElementById("downloadBtn").onclick=()=>{
+
+const link=document.createElement("a")
+
+link.download="burmese-design.png"
+link.href=canvas.toDataURL("image/png")
+
+link.click()
+
+}
 
 </script>
 
