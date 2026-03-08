@@ -172,7 +172,15 @@ background:#f6e5a0;
 <input type="color" id="color1" value="#f6e5a0">
 <input type="color" id="color2" value="#b38e46">
 </div>
+<div class="control-group">
+<label>Text Border</label>
 
+<div class="grid2">
+<input type="color" id="borderColor" value="#000000">
+<input type="range" id="borderSize" min="0" max="10" value="3">
+</div>
+
+</div>
 </div>
 
 <div class="control-group">
@@ -198,7 +206,7 @@ const ctx=canvas.getContext("2d")
 const ids=[
 "imageLoader","watermarkLoader","textInput","fontSize","xPos","yPos",
 "color1","color2","lineSpacing","textAlign",
-"wmX","wmY","wmSize","wmOpacity","wmRepeat"
+"wmX","wmY","wmSize","wmOpacity","wmRepeat","borderColor","borderSize"
 ]
 
 const el={}
@@ -335,8 +343,15 @@ ctx.shadowBlur=6
 
 ctx.fillStyle=grad
 
-ctx.fillText(line,parseInt(el.xPos.value),y)
+const x = parseInt(el.xPos.value)
 
+// outline
+ctx.lineWidth = parseInt(el.borderSize.value)
+ctx.strokeStyle = el.borderColor.value
+ctx.strokeText(line, x, y)
+
+// fill
+ctx.fillText(line, x, y)
 })
 
 }
